@@ -1,47 +1,84 @@
-# Dependencies
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
 node_modules/
-.pnp
+/.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+package-lock.json
 
-# Next.js build output
+# testing
+/coverage
+*.test.ts
+*.test.tsx
+
+# next.js
 .next/
 out/
-
-# Production build
-build/
 dist/
 
-# Environment files
-.env
-.env.*
-!.env.example
+# production
+build/
 
-# Debug logs
+# misc
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
+
+# env files
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+*.log
+
+# tailwind
+.tailwindcss
+
+# documentation and temp files
+*.docx
+*.doc
+*.tmp
+*~
 
 # OS files
-.DS_Store
 Thumbs.db
+.DS_Store
 
-# Editor directories and files
-.vscode/
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
+*~
 
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
+# Optional npm cache directory
+.npm
 
-# Misc
-*.pem
-.vercel
-/coverage
+# Optional eslint cache
+.eslintcache
+
+# Turborepo cache
+.turbo
