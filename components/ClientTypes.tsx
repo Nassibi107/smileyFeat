@@ -27,8 +27,32 @@ const clients = [
 
 export default function ClientTypes() {
   return (
-    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28]">
-      <div className="max-w-7xl mx-auto">
+    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28] relative overflow-hidden">
+      {/* Radial spotlight background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(122,92,255,0.08)_0%,transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(156,124,255,0.06)_0%,transparent_50%)]" />
+        {/* Floating orbs */}
+        <motion.div
+          animate={{ y: [0, -30, 0], x: [0, 20, 0], opacity: [0.08, 0.18, 0.08] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-[10%] w-[200px] h-[200px] rounded-full bg-[#7A5CFF]/10 blur-[80px]"
+        />
+        <motion.div
+          animate={{ y: [0, 20, 0], x: [0, -15, 0], opacity: [0.06, 0.15, 0.06] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          className="absolute bottom-1/4 right-[10%] w-[250px] h-[250px] rounded-full bg-[#9C7CFF]/10 blur-[80px]"
+        />
+        <motion.div
+          animate={{ y: [-20, 20, -20], opacity: [0.05, 0.12, 0.05] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full bg-[#5B3FD9]/8 blur-[100px]"
+        />
+      </div>
+      {/* Decorative line */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-16 bg-gradient-to-b from-[#7A5CFF]/30 to-transparent" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

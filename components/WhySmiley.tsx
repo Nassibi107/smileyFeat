@@ -13,8 +13,34 @@ const reasons = [
 
 export default function WhySmiley() {
   return (
-    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28]">
-      <div className="max-w-5xl mx-auto">
+    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28] relative overflow-hidden">
+      {/* Diamond pattern + dual glow */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(122,92,255,0.03)_25%,transparent_25%,transparent_75%,rgba(122,92,255,0.03)_75%),linear-gradient(45deg,rgba(122,92,255,0.03)_25%,transparent_25%,transparent_75%,rgba(122,92,255,0.03)_75%)] bg-[size:60px_60px] bg-[position:0_0,30px_30px]" />
+        <motion.div
+          animate={{ opacity: [0.06, 0.18, 0.06], x: [-20, 20, -20] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-[#7A5CFF]/12 blur-[120px]"
+        />
+        <motion.div
+          animate={{ opacity: [0.08, 0.2, 0.08], x: [20, -20, 20] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          className="absolute bottom-1/4 right-1/3 w-[350px] h-[350px] rounded-full bg-[#9C7CFF]/10 blur-[110px]"
+        />
+      </div>
+      {/* Side accent lines */}
+      <motion.div
+        animate={{ height: ["0%", "60%", "0%"] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-px bg-gradient-to-b from-transparent via-[#7A5CFF]/20 to-transparent"
+      />
+      <motion.div
+        animate={{ height: ["0%", "60%", "0%"] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-px bg-gradient-to-b from-transparent via-[#9C7CFF]/20 to-transparent"
+      />
+
+      <div className="max-w-5xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

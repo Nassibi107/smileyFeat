@@ -12,8 +12,26 @@ const items = [
 
 export default function RealityCheck() {
   return (
-    <section className="py-32 px-6 bg-[#0B0B0F]">
-      <div className="max-w-3xl mx-auto text-center">
+    <section className="py-32 px-6 bg-[#0B0B0F] relative overflow-hidden">
+      {/* Cracked glass / shattered grid background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,50,50,0.03)_25%,transparent_25%,transparent_50%,rgba(255,50,50,0.03)_50%,rgba(255,50,50,0.03)_75%,transparent_75%)] bg-[size:40px_40px]" />
+        <motion.div
+          animate={{ opacity: [0.05, 0.15, 0.05] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-red-500/10 blur-[150px]"
+        />
+        <motion.div
+          animate={{ opacity: [0.08, 0.2, 0.08] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-[#7A5CFF]/10 blur-[120px]"
+        />
+      </div>
+      {/* Animated warning stripes */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7A5CFF]/30 to-transparent" />
+
+      <div className="max-w-3xl mx-auto text-center relative z-10">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

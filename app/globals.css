@@ -19,4 +19,83 @@ body {
 
 * {
   box-sizing: border-box;
+  cursor: none;
+}
+
+/* Custom cursor — glass ring */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  border: 1.5px solid rgba(122, 92, 255, 0.5);
+  background: rgba(122, 92, 255, 0.06);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 18px 2px rgba(122, 92, 255, 0.15), inset 0 0 8px rgba(156, 124, 255, 0.08);
+  transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.custom-cursor.hovering {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(156, 124, 255, 0.7);
+  background: rgba(122, 92, 255, 0.1);
+  box-shadow: 0 0 30px 6px rgba(122, 92, 255, 0.25), inset 0 0 14px rgba(156, 124, 255, 0.12);
+}
+
+/* Inner bright dot */
+.custom-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: #9C7CFF;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 100000;
+  box-shadow: 0 0 10px 3px rgba(156, 124, 255, 0.5);
+}
+
+/* Glow trail */
+.custom-cursor-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  background: radial-gradient(circle, rgba(122,92,255,0.2) 0%, transparent 70%);
+  transition: transform 0.35s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-secondary), var(--accent-primary));
+}
+
+/* Firefox scrollbar */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary) transparent;
 }

@@ -10,8 +10,27 @@ const systems = [
 
 export default function Positioning() {
   return (
-    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28]">
-      <div className="max-w-5xl mx-auto">
+    <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28] relative overflow-hidden">
+      {/* Blueprint grid background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(122,92,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(122,92,255,0.04)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(122,92,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(122,92,255,0.02)_1px,transparent_1px)] bg-[size:160px_160px]" />
+        <motion.div
+          animate={{ opacity: [0.05, 0.2, 0.05], scale: [1, 1.1, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-[#7A5CFF]/8 blur-[130px]"
+        />
+        <motion.div
+          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-[#9C7CFF]/8 blur-[100px]"
+        />
+      </div>
+      {/* Corner accents */}
+      <div className="absolute top-8 left-8 w-16 h-16 border-l-2 border-t-2 border-[#7A5CFF]/10 rounded-tl-lg" />
+      <div className="absolute bottom-8 right-8 w-16 h-16 border-r-2 border-b-2 border-[#7A5CFF]/10 rounded-br-lg" />
+
+      <div className="max-w-5xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
