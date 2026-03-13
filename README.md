@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SMILEY Frontend
 
-## Getting Started
+SMILEY is a marketing website for a revenue infrastructure brand. The project is built as a frontend-only Next.js application with animated landing-page sections, supporting detail pages, and a client-side booking form for strategic calls.
 
-First, run the development server:
+## Overview
+
+This codebase presents SMILEY as a premium consulting and growth systems company. The experience is centered around a long-form homepage that explains the offer, shows proof and positioning, introduces the team, and drives users toward a booking flow.
+
+Core experience includes:
+
+- A scroll-based homepage assembled from reusable section components
+- Dedicated pages for About, Infrastructure, Case Studies, and Book Call
+- Framer Motion transitions and reveal animations across the site
+- A custom animated cursor and styled scrollbar for a more branded feel
+- Responsive navigation with desktop and mobile menu states
+
+## Tech Stack
+
+- Next.js 14 with the App Router
+- React 18
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Lucide React
+
+## Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Main landing page composed of multiple marketing sections |
+| `/about` | Brand story and team presentation |
+| `/infrastructure` | Four-phase revenue engine / delivery process |
+| `/case-studies` | Industry-specific transformation examples and outcomes |
+| `/book-call` | Client-side intake form for booking a strategy call |
+
+## Homepage Composition
+
+The homepage is defined in `app/page.tsx` and is composed from reusable components in `components/`.
+
+Sections currently rendered on the homepage:
+
+- Hero
+- Dashboard
+- Reality Check
+- Positioning
+- Client Types
+- Revenue Engine
+- Our Team
+- Partnerships
+- Why Smiley
+- Case Studies
+- Final CTA
+- Footer
+
+Shared site-level UI is provided through the root layout:
+
+- `Navbar` is rendered globally from `app/layout.tsx`
+- `CustomCursor` is injected globally from `app/layout.tsx`
+- Global colors, cursor styling, and scrollbar styling live in `app/globals.css`
+
+## Project Structure
+
+```text
+app/
+	layout.tsx              Root layout with metadata, navbar, and custom cursor
+	page.tsx                Homepage composition
+	about/page.tsx          About page
+	book-call/page.tsx      Booking form page
+	case-studies/page.tsx   Case studies page
+	infrastructure/page.tsx Infrastructure process page
+
+components/
+	Hero.tsx
+	Dashboard.tsx
+	RealityCheck.tsx
+	Positioning.tsx
+	ClientTypes.tsx
+	RevenueEngine.tsx
+	OurTeam.tsx
+	Partnerships.tsx
+	WhySmiley.tsx
+	CaseStudies.tsx
+	FinalCTA.tsx
+	Navbar.tsx
+	Footer.tsx
+	CustomCursor.tsx
+```
+
+## Local Development
+
+### Prerequisites
+
+- Node.js 18 or later
+- npm
+
+### Install
+
+```bash
+npm install
+```
+
+### Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev    # Start the local development server
+npm run build  # Create a production build
+npm run start  # Start the production server
+npm run lint   # Run project linting
+```
 
-## Learn More
+## Content and Interaction Notes
 
-To learn more about Next.js, take a look at the following resources:
+- The site content is currently hardcoded in page and component files.
+- The Book Call flow is frontend-only at the moment. Submitting the form sets local component state and shows a success message; it does not send data to a backend or third-party form service.
+- Team data, case study data, and infrastructure phase data are stored inline inside their page or component files.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Styling Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Global theme variables are defined in `app/globals.css`
+- The current visual direction uses a dark background with violet accent gradients
+- Most layout and UI styling is implemented with Tailwind utility classes
+- Motion behavior is handled with Framer Motion rather than CSS-only animation patterns
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project can be deployed on any platform that supports Next.js applications, including Vercel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Typical production flow:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+## Recommended Next Improvements
+
+- Connect the booking form to a real submission target such as an API route, CRM, or form provider
+- Move repeated content into structured data files or a CMS if non-developers need to edit copy
+- Add automated tests for page rendering and key interactions if the site will continue evolving

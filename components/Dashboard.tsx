@@ -39,7 +39,6 @@ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 export default function Dashboard() {
   const sectionRef = useRef(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
 
   return (
     <section ref={sectionRef} className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28] overflow-hidden relative">
