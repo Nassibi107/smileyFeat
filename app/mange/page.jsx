@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
+  Sun,
+  Moon,
   Target,
   Briefcase,
   Users,
@@ -32,8 +34,15 @@ import {
 } from "recharts";
 
 const STAGES = ["Lead Captured", "Qualified", "Call Booked", "Call Done", "Proposal", "Won", "Lost"];
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const AUTH_STORAGE_KEY = "smileyos.crm.token";
 const API_ENDPOINTS = {
-  crmLeads: "/api/crm/leads",
+  authLogin: `${API_BASE}/auth/login`,
+  crmLeads: `${API_BASE}/crm/leads`,
+  bookingsRecent: `${API_BASE}/bookings/recent`,
+  contentAdmin: `${API_BASE}/content/admin`,
+  contentSite: `${API_BASE}/content/site`,
+  contentTeam: `${API_BASE}/content/team`,
 };
 
 function formatMoney(value) {
@@ -85,11 +94,37 @@ export default function SmileyOSPage() {
   const [activeModule, setActiveModule] = useState("Command Center");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [notificationCount] = useState(5);
+  const [darkMode, setDarkMode] = useState(true);
+  const [authToken, setAuthToken] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authReady, setAuthReady] = useState(false);
+  const [bookingNotifications, setBookingNotifications] = useState([]);
   const [backendStatus, setBackendStatus] = useState("checking");
   const [syncMessage, setSyncMessage] = useState("Checking API connection...");
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSavingLead, setIsSavingLead] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [siteContent, setSiteContent] = useState({
+    heroTitle: "",
+    heroSubtitle: "",
+    aboutTitle: "",
+    aboutParagraph: "",
+    aboutHighlights: "",
+  });
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  const [isSavingTeamMember, setIsSavingTeamMember] = useState(false);
+  const [teamForm, setTeamForm] = useState({
+    name: "",
+    role: "",
+    specialty: "",
+    bio: "",
+    imageUrl: "",
+    color: "#7A5CFF",
+    displayOrder: 0,
+  });
 
   const navItems = [
     { label: "Command Center", icon: LayoutDashboard },
@@ -98,6 +133,7 @@ export default function SmileyOSPage() {
     { label: "Freelancers", icon: Users },
     { label: "SOP Knowledge Base", icon: BookOpen },
     { label: "Financials", icon: BarChart2 },
+    { label: "Website Content", icon: BookOpen },
   ];
 
   const [revenueTrend] = useState([
@@ -707,12 +743,41 @@ export default function SmileyOSPage() {
   }, []);
 
   useEffect(() => {
+    const storedToken = window.localStorage.getItem(AUTH_STORAGE_KEY) ?? "";
+    const storedEmail = window.localStorage.getItem(`${AUTH_STORAGE_KEY}.email`) ?? "";
+    const storedDarkMode = window.localStorage.getItem("smileyos.darkMode");
+    setAuthToken(storedToken);
+    setAuthEmail(storedEmail);
+    if (storedDarkMode !== null) setDarkMode(storedDarkMode !== "false");
+    setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
     const loadLeads = async () => {
+      if (!authToken) {
+        if (active) {
+          setBackendStatus("checking");
+          setSyncMessage("Login required");
+          setIsSyncing(false);
+        }
+        return;
+      }
+
       setIsSyncing(true);
       try {
-        const response = await fetch(API_ENDPOINTS.crmLeads, { cache: "no-store" });
+        const response = await fetch(API_ENDPOINTS.crmLeads, {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (response.status === 401) {
+          throw new Error("unauthorized");
+        }
+
         if (!response.ok) {
           throw new Error("Lead API returned a non-200 response.");
         }
@@ -730,8 +795,12 @@ export default function SmileyOSPage() {
         }
       } catch {
         if (active) {
+          window.localStorage.removeItem(AUTH_STORAGE_KEY);
+          window.localStorage.removeItem(`${AUTH_STORAGE_KEY}.email`);
+          setAuthToken("");
+          setAuthEmail("");
           setBackendStatus("mock");
-          setSyncMessage("API unavailable, using local mock data");
+          setSyncMessage("Login expired or API unavailable");
         }
       } finally {
         if (active) {
@@ -743,6 +812,90 @@ export default function SmileyOSPage() {
     loadLeads();
     return () => {
       active = false;
+    };
+  }, [authToken]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAdminContent = async () => {
+      if (!authToken) {
+        return;
+      }
+
+      try {
+        const response = await fetch(API_ENDPOINTS.contentAdmin, {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (response.status === 401) {
+          throw new Error("unauthorized");
+        }
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!active) {
+          return;
+        }
+
+        if (payload?.site) {
+          setSiteContent({
+            heroTitle: payload.site.heroTitle || "",
+            heroSubtitle: payload.site.heroSubtitle || "",
+            aboutTitle: payload.site.aboutTitle || "",
+            aboutParagraph: payload.site.aboutParagraph || "",
+            aboutHighlights: Array.isArray(payload.site.aboutHighlights) ? payload.site.aboutHighlights.join("\n") : "",
+          });
+        }
+
+        if (Array.isArray(payload?.team)) {
+          setTeamMembers(payload.team);
+        }
+      } catch {
+        if (active) {
+          handleLogout();
+        }
+      }
+    };
+
+    loadAdminContent();
+
+    return () => {
+      active = false;
+    };
+  }, [authToken]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRecentBookings = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.bookingsRecent, { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (active && Array.isArray(payload)) {
+          setBookingNotifications(payload);
+        }
+      } catch {
+        // Keep local UI data when booking notification API is unavailable.
+      }
+    };
+
+    loadRecentBookings();
+    const intervalId = window.setInterval(loadRecentBookings, 20000);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -779,9 +932,76 @@ export default function SmileyOSPage() {
   const freelancerTotal = profitability.reduce((sum, row) => sum + row.freelancerCost, 0);
   const opTotal = profitability.reduce((sum, row) => sum + row.opCost, 0);
   const netProfit = revenueTotal - freelancerTotal - opTotal;
+  const bookingAlerts = bookingNotifications.slice(0, 3).map((booking) => ({
+    type: "info",
+    text: `New booking: ${booking.companyName} (${booking.email})`,
+  }));
+  const dashboardAlerts = [...bookingAlerts, ...alerts].slice(0, 5);
+  const notificationCount = dashboardAlerts.length;
 
   const handleLeadFormChange = (field, value) => {
     setLeadForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    setIsLoggingIn(true);
+
+    try {
+      const response = await fetch(API_ENDPOINTS.authLogin, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginForm.email,
+          password: loginForm.password,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid login credentials");
+      }
+
+      const payload = await response.json();
+      const token = payload?.token || "";
+      const userEmail = payload?.user?.email || loginForm.email;
+
+      if (!token) {
+        throw new Error("Login token missing");
+      }
+
+      window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+      window.localStorage.setItem(`${AUTH_STORAGE_KEY}.email`, userEmail);
+      setAuthToken(token);
+      setAuthEmail(userEmail);
+      setBackendStatus("connected");
+      setSyncMessage("Connected to backend");
+      setLoginForm((prev) => ({ ...prev, password: "" }));
+    } catch {
+      setAuthError("Login failed. Check email/password and backend API.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.removeItem(`${AUTH_STORAGE_KEY}.email`);
+    setAuthToken("");
+    setAuthEmail("");
+    setBackendStatus("checking");
+    setSyncMessage("Disconnected");
+    setTeamMembers([]);
+  };
+
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("smileyos.darkMode", String(next));
+      return next;
+    });
   };
 
   const handleAddLead = async (e) => {
@@ -806,9 +1026,17 @@ export default function SmileyOSPage() {
     try {
       const response = await fetch(API_ENDPOINTS.crmLeads, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify(newLead),
       });
+
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
 
       if (!response.ok) {
         throw new Error("Unable to save lead to backend.");
@@ -925,7 +1153,7 @@ export default function SmileyOSPage() {
           <div className="card">
             <div className="card-title">Operational Alerts</div>
             <div className="stack-12">
-              {alerts.map((alert) => (
+              {dashboardAlerts.map((alert) => (
                 <div key={alert.text} className={`alert-row ${alert.type}`}>
                   <div>{alert.text}</div>
                 </div>
@@ -1191,6 +1419,45 @@ export default function SmileyOSPage() {
   const renderFreelancers = () => {
     return (
       <div className="module-stack">
+
+        {/* ── Team Design Intro ── */}
+        <div className="card team-intro-card" style={{ borderLeft: "3px solid #7c3aed" }}>
+          <div className="row-between wrap gap-8">
+            <div>
+              <div className="card-title" style={{ fontSize: 20 }}>Meet Your Execution Team</div>
+              <div className="muted" style={{ marginTop: 6, maxWidth: 680, lineHeight: 1.6 }}>
+                A curated squad of domain specialists — assembled, managed, and held accountable so you focus on decisions, not logistics. Each member owns a precise lane inside your engagement.
+              </div>
+            </div>
+            <span className="badge badge-success" style={{ fontSize: 13, padding: "6px 14px" }}>
+              {freelancers.length} Active Specialists
+            </span>
+          </div>
+
+          <div className="three-col" style={{ marginTop: 20, gap: 20 }}>
+            <div style={{ borderLeft: "2px solid #7c3aed", paddingLeft: 14 }}>
+              <div className="metric-sm" style={{ marginBottom: 8 }}>Specialist-First Assembly</div>
+              <div className="muted" style={{ fontSize: 13, lineHeight: 1.65 }}>
+                Every hire covers a narrow, proven skill — funnel design, CRM engineering, paid media. You get the exact expert for each
+                layer of the project, not a generalist stretched thin across deliverables.
+              </div>
+            </div>
+            <div style={{ borderLeft: "2px solid #8b5cf6", paddingLeft: 14 }}>
+              <div className="metric-sm" style={{ marginBottom: 8 }}>One Interface, Zero Silos</div>
+              <div className="muted" style={{ fontSize: 13, lineHeight: 1.65 }}>
+                Designers, engineers, analysts, and media buyers operate inside a shared delivery system — unified KPIs, weekly standups, and a single point of contact on your side.
+                No coordination overhead for you.
+              </div>
+            </div>
+            <div style={{ borderLeft: "2px solid #a78bfa", paddingLeft: 14 }}>
+              <div className="metric-sm" style={{ marginBottom: 8 }}>Outcome-Tied Accountability</div>
+              <div className="muted" style={{ fontSize: 13, lineHeight: 1.65 }}>
+                You define the goal. We handle staffing, quality control, and delivery cadence. Every sprint maps to a measurable business result you signed off on — with weekly visibility into what moved.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="card">
           <div className="card-title">Capacity Overview</div>
           <div className="stack-12">
@@ -1460,17 +1727,291 @@ export default function SmileyOSPage() {
     );
   };
 
+  const saveSiteContent = async (e) => {
+    e.preventDefault();
+
+    if (!authToken) {
+      setAuthError("Please login first.");
+      return;
+    }
+
+    setIsSavingContent(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.contentSite, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          heroTitle: siteContent.heroTitle,
+          heroSubtitle: siteContent.heroSubtitle,
+          aboutTitle: siteContent.aboutTitle,
+          aboutParagraph: siteContent.aboutParagraph,
+          aboutHighlights: siteContent.aboutHighlights
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean),
+        }),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
+
+      if (!response.ok) {
+        throw new Error("Unable to save content");
+      }
+
+      setSyncMessage("Website content updated");
+      setBackendStatus("connected");
+    } catch {
+      setSyncMessage("Could not save website content");
+    } finally {
+      setIsSavingContent(false);
+    }
+  };
+
+  const addTeamMember = async (e) => {
+    e.preventDefault();
+
+    if (!authToken) {
+      setAuthError("Please login first.");
+      return;
+    }
+
+    setIsSavingTeamMember(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.contentTeam, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          ...teamForm,
+          displayOrder: Number(teamForm.displayOrder || 0),
+          active: true,
+        }),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
+
+      if (!response.ok) {
+        throw new Error("Unable to add team member");
+      }
+
+      const payload = await response.json();
+      setTeamMembers((prev) => [...prev, payload].sort((a, b) => a.displayOrder - b.displayOrder));
+      setTeamForm({
+        name: "",
+        role: "",
+        specialty: "",
+        bio: "",
+        imageUrl: "",
+        color: "#7A5CFF",
+        displayOrder: 0,
+      });
+      setSyncMessage("Team member added");
+    } catch {
+      setSyncMessage("Unable to add team member");
+    } finally {
+      setIsSavingTeamMember(false);
+    }
+  };
+
+  const removeTeamMember = async (id) => {
+    if (!authToken) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_ENDPOINTS.contentTeam}/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        return;
+      }
+
+      setTeamMembers((prev) => prev.filter((member) => member.id !== id));
+      setSyncMessage("Team member removed");
+    } catch {
+      setSyncMessage("Failed to remove team member");
+    }
+  };
+
+  const renderWebsiteContent = () => {
+    return (
+      <div className="module-stack">
+        <div className="card">
+          <div className="card-title">Main Website Content</div>
+          <p className="muted">Changes here update the hero and about sections of your public site.</p>
+          <form className="modal-grid margin-top-12" onSubmit={saveSiteContent}>
+            <div className="form-control full-row">
+              <label>Hero Title</label>
+              <input className="form-input" value={siteContent.heroTitle} onChange={(e) => setSiteContent((prev) => ({ ...prev, heroTitle: e.target.value }))} required />
+            </div>
+            <div className="form-control full-row">
+              <label>Hero Subtitle</label>
+              <textarea rows={3} value={siteContent.heroSubtitle} onChange={(e) => setSiteContent((prev) => ({ ...prev, heroSubtitle: e.target.value }))} />
+            </div>
+            <div className="form-control">
+              <label>About Title</label>
+              <input className="form-input" value={siteContent.aboutTitle} onChange={(e) => setSiteContent((prev) => ({ ...prev, aboutTitle: e.target.value }))} />
+            </div>
+            <div className="form-control full-row">
+              <label>About Paragraph</label>
+              <textarea rows={4} value={siteContent.aboutParagraph} onChange={(e) => setSiteContent((prev) => ({ ...prev, aboutParagraph: e.target.value }))} />
+            </div>
+            <div className="form-control full-row">
+              <label>About Highlights (one line each)</label>
+              <textarea rows={5} value={siteContent.aboutHighlights} onChange={(e) => setSiteContent((prev) => ({ ...prev, aboutHighlights: e.target.value }))} />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit" disabled={isSavingContent}>{isSavingContent ? "Saving..." : "Save Website Content"}</button>
+            </div>
+          </form>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Team Members (with Image URL)</div>
+          <p className="muted">Add, reorder, and remove team profiles shown on homepage and about page.</p>
+
+          <form className="modal-grid margin-top-12" onSubmit={addTeamMember}>
+            <div className="form-control">
+              <label>Name</label>
+              <input className="form-input" value={teamForm.name} onChange={(e) => setTeamForm((prev) => ({ ...prev, name: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Role</label>
+              <input className="form-input" value={teamForm.role} onChange={(e) => setTeamForm((prev) => ({ ...prev, role: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Specialty</label>
+              <input className="form-input" value={teamForm.specialty} onChange={(e) => setTeamForm((prev) => ({ ...prev, specialty: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Display Order</label>
+              <input className="form-input" type="number" min="0" value={teamForm.displayOrder} onChange={(e) => setTeamForm((prev) => ({ ...prev, displayOrder: Number(e.target.value || 0) }))} />
+            </div>
+            <div className="form-control full-row">
+              <label>Profile Bio</label>
+              <textarea rows={3} value={teamForm.bio} onChange={(e) => setTeamForm((prev) => ({ ...prev, bio: e.target.value }))} required />
+            </div>
+            <div className="form-control full-row">
+              <label>Image URL (optional)</label>
+              <input className="form-input" value={teamForm.imageUrl} onChange={(e) => setTeamForm((prev) => ({ ...prev, imageUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit" disabled={isSavingTeamMember}>{isSavingTeamMember ? "Adding..." : "Add Team Member"}</button>
+            </div>
+          </form>
+
+          <div className="table-wrap margin-top-12">
+            <table className="table compact">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Image</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamMembers.map((member) => (
+                  <tr key={member.id}>
+                    <td>{member.displayOrder}</td>
+                    <td>{member.name}</td>
+                    <td>{member.role}</td>
+                    <td>{member.imageUrl ? "Yes" : "No"}</td>
+                    <td>
+                      <button className="btn-ghost" onClick={() => removeTeamMember(member.id)} type="button">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderModule = () => {
     if (activeModule === "Command Center") return renderCommandCenter();
     if (activeModule === "Acquisition & CRM") return renderCRM();
     if (activeModule === "Client Delivery") return renderClientDelivery();
     if (activeModule === "Freelancers") return renderFreelancers();
     if (activeModule === "SOP Knowledge Base") return renderSOP();
+    if (activeModule === "Website Content") return renderWebsiteContent();
     return renderFinancials();
   };
 
+  if (!authReady) {
+    return <div className="smiley-os-root loading-shell" />;
+  }
+
+  if (!authToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4">
+        <div className="w-full max-w-md rounded-2xl border border-[#1e1e1e] bg-[#111111] p-6 text-white">
+          <h1 className="text-2xl font-bold mb-2">SMILEY OS Login</h1>
+          <p className="text-sm text-[#b5b5c3] mb-6">Login to access the production dashboard and protected API data.</p>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm text-[#b5b5c3] mb-1">Email</label>
+              <input
+                className="w-full rounded-lg border border-[#1e1e1e] bg-[#0f0f0f] px-3 py-2 text-white outline-none focus:border-[#7c3aed]"
+                type="email"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[#b5b5c3] mb-1">Password</label>
+              <input
+                className="w-full rounded-lg border border-[#1e1e1e] bg-[#0f0f0f] px-3 py-2 text-white outline-none focus:border-[#7c3aed]"
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                required
+              />
+            </div>
+
+            {authError ? <p className="text-sm text-[#ef4444]">{authError}</p> : null}
+
+            <button
+              className="w-full rounded-lg bg-[#7c3aed] hover:bg-[#8b5cf6] transition-colors px-4 py-2 font-semibold"
+              type="submit"
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? "Signing in..." : "Login"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="smiley-os-root">
+    <div className={`smiley-os-root${!darkMode ? " light" : ""}`}>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
@@ -2365,6 +2906,86 @@ export default function SmileyOSPage() {
           grid-column: 1 / -1;
         }
 
+        /* ── LIGHT MODE ── */
+        .smiley-os-root.light {
+          --bg: #f0f0f6;
+          --surface: #ffffff;
+          --border: #e2e4ec;
+          --text: #111827;
+          --muted: #6b7280;
+          background:
+            radial-gradient(circle at 88% 10%, rgba(124, 58, 237, 0.07), transparent 42%),
+            radial-gradient(circle at 8% 80%, rgba(139, 92, 246, 0.04), transparent 38%),
+            var(--bg);
+        }
+        .smiley-os-root.light .os-sidebar {
+          background: #ffffff;
+        }
+        .smiley-os-root.light .topbar {
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+        }
+        .smiley-os-root.light .card {
+          box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.08), 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+        .smiley-os-root.light .client-mini,
+        .smiley-os-root.light .lead-card,
+        .smiley-os-root.light .sop-card,
+        .smiley-os-root.light .alert-row,
+        .smiley-os-root.light .step {
+          background: #f5f5fb;
+        }
+        .smiley-os-root.light .kanban-col,
+        .smiley-os-root.light .task-col {
+          background: #f3f3f9;
+        }
+        .smiley-os-root.light .sync-pill {
+          background: #f0f0f5;
+        }
+        .smiley-os-root.light .count-pill {
+          background: #eaeaef;
+          border-color: var(--border);
+          color: var(--text);
+        }
+        .smiley-os-root.light .progress-track,
+        .smiley-os-root.light .tiny-progress {
+          background: #e2e4ec;
+        }
+        .smiley-os-root.light .modal {
+          background: #ffffff;
+          box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.1), 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+        .smiley-os-root.light .modal-backdrop {
+          background: rgba(0, 0, 0, 0.3);
+        }
+        .smiley-os-root.light .avatar-chip {
+          background: #f0f0f5;
+          border-color: var(--border);
+        }
+        .smiley-os-root.light .paragraph,
+        .smiley-os-root.light .list,
+        .smiley-os-root.light .ol-list {
+          color: #374151;
+        }
+        .smiley-os-root.light input,
+        .smiley-os-root.light select,
+        .smiley-os-root.light textarea {
+          background: #f5f5fb;
+          color: var(--text);
+          border-color: var(--border);
+        }
+        .smiley-os-root.light .side-btn {
+          color: #374151;
+        }
+        .smiley-os-root.light .side-btn:hover,
+        .smiley-os-root.light .side-btn.active {
+          background: rgba(124, 58, 237, 0.08);
+          color: #7c3aed;
+        }
+        .smiley-os-root.light .team-intro-card {
+          background: linear-gradient(135deg, rgba(124,58,237,0.05) 0%, #ffffff 60%);
+        }
+
         @keyframes fadeUp {
           from {
             opacity: 0;
@@ -2495,6 +3116,11 @@ export default function SmileyOSPage() {
             </div>
             <div className="top-right">
               <span className={`sync-pill ${backendStatus}`}>{isSyncing ? "Syncing" : backendStatus === "connected" ? "API Connected" : "Mock Mode"}</span>
+              <span className="sync-pill connected">{authEmail || "CRM Admin"}</span>
+              <button className="btn-ghost" onClick={handleLogout}>Logout</button>
+              <button className="btn-icon" onClick={toggleDarkMode} aria-label="Toggle theme" title={darkMode ? "Switch to light mode" : "Switch to dark mode"}>
+                {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
               <div className="notification">
                 <Bell size={16} />
                 <span className="badge-count">{notificationCount}</span>

@@ -1,7 +1,17 @@
 "use client";
 import { motion } from "framer-motion";
 
-const team = [
+type TeamMember = {
+  id?: number;
+  name: string;
+  role: string;
+  specialty: string;
+  bio: string;
+  color?: string;
+  imageUrl?: string | null;
+};
+
+const team: TeamMember[] = [
   {
     name: "Yassine Nassibi",
     role: "Founder & CEO",
@@ -46,7 +56,13 @@ const team = [
   },
 ];
 
-export default function OurTeam() {
+type OurTeamProps = {
+  teamMembers?: TeamMember[];
+};
+
+export default function OurTeam({ teamMembers }: OurTeamProps) {
+  const renderedTeam = teamMembers && teamMembers.length > 0 ? teamMembers : team;
+
   return (
     <section className="py-32 px-6 bg-[#0B0B0F] border-t border-[#1F1F28] relative overflow-hidden">
       {/* Network constellation background */}
@@ -111,7 +127,7 @@ export default function OurTeam() {
 
         {/* Team Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {team.map((member, i) => (
+          {renderedTeam.map((member, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 40, scale: 0.95 }}
@@ -130,9 +146,16 @@ export default function OurTeam() {
                 transition={{ duration: 0.5 }}
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative bg-gradient-to-br from-[#7A5CFF]/10 to-[#7A5CFF]/25 border border-[#7A5CFF]/30"
               >
-                <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#7A5CFF] to-[#9C7CFF]">
-                  {member.name.split(" ").map(n => n[0]).join("")}
-                </span>
+                {member.imageUrl ? (
+                  <img src={member.imageUrl} alt={member.name} className="w-full h-full rounded-2xl object-cover" />
+                ) : (
+                  <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#7A5CFF] to-[#9C7CFF]">
+                    {member.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </span>
+                )}
                 {/* Online indicator */}
                 <motion.div
                   animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}

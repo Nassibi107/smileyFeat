@@ -11,7 +11,15 @@ const particles = Array.from({ length: 30 }, (_, i) => ({
   delay: Math.random() * 10,
 }));
 
-export default function Hero() {
+type HeroProps = {
+  title?: string;
+  subtitle?: string;
+};
+
+export default function Hero({
+  title = "WE BUILD REVENUE INFRASTRUCTURE.",
+  subtitle = "We help business owners scale revenue by systemizing acquisition, eliminating operational chaos, and building predictable profit systems.",
+}: HeroProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0B0B0F]">
       {/* Animated purple glow background */}
@@ -136,12 +144,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6"
         >
-          WE BUILD{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7A5CFF] to-[#9C7CFF]">
-            REVENUE
-          </span>
-          <br />
-          INFRASTRUCTURE.
+          {title}
         </motion.h1>
 
         <motion.p
@@ -150,7 +153,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-[#B5B5C3] text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          We help business owners scale revenue by systemizing acquisition, eliminating operational chaos, and building predictable profit systems.
+          {subtitle}
         </motion.p>
 
         <motion.div

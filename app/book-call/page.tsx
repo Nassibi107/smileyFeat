@@ -5,10 +5,48 @@ import Footer from "@/components/Footer";
 
 export default function BookCallPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+    const payload = {
+      companyName: String(formData.get("companyName") ?? ""),
+      website: String(formData.get("website") ?? ""),
+      industry: String(formData.get("industry") ?? ""),
+      companyStage: String(formData.get("companyStage") ?? ""),
+      monthlyRevenue: String(formData.get("monthlyRevenue") ?? ""),
+      bottleneck: String(formData.get("bottleneck") ?? ""),
+      budgetRange: String(formData.get("budgetRange") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+    };
+
+    try {
+      const response = await fetch(`${apiBase}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to create booking.");
+      }
+
+      setSubmitted(true);
+      form.reset();
+    } catch {
+      setSubmitError("Submission failed. Please try again in a moment.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -55,6 +93,7 @@ export default function BookCallPage() {
                 <div>
                   <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Company Name</label>
                   <input
+                    name="companyName"
                     type="text"
                     required
                     className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
@@ -64,6 +103,7 @@ export default function BookCallPage() {
                 <div>
                   <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Website</label>
                   <input
+                    name="website"
                     type="url"
                     className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
                     placeholder="https://acme.com"
@@ -74,6 +114,7 @@ export default function BookCallPage() {
               <div>
                 <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Industry</label>
                 <input
+                  name="industry"
                   type="text"
                   required
                   className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
@@ -84,6 +125,7 @@ export default function BookCallPage() {
               <div>
                 <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Company Stage</label>
                 <select
+                  name="companyStage"
                   required
                   className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
                 >
@@ -97,6 +139,7 @@ export default function BookCallPage() {
               <div>
                 <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Monthly Revenue</label>
                 <select
+                  name="monthlyRevenue"
                   required
                   className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
                 >
@@ -111,6 +154,7 @@ export default function BookCallPage() {
               <div>
                 <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Current Bottleneck</label>
                 <textarea
+                  name="bottleneck"
                   rows={3}
                   className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors resize-none"
                   placeholder="Describe your biggest challenge..."
@@ -120,6 +164,7 @@ export default function BookCallPage() {
               <div>
                 <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Budget Range</label>
                 <select
+                  name="budgetRange"
                   className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
                 >
                   <option value="">Select budget</option>
@@ -134,6 +179,7 @@ export default function BookCallPage() {
                 <div>
                   <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Email</label>
                   <input
+                    name="email"
                     type="email"
                     required
                     className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
@@ -143,6 +189,7 @@ export default function BookCallPage() {
                 <div>
                   <label className="block text-[#B5B5C3] text-sm font-semibold mb-2">Phone</label>
                   <input
+                    name="phone"
                     type="tel"
                     className="w-full bg-[#0E0E14] border border-[#1F1F28] focus:border-[#7A5CFF]/50 rounded-lg px-4 py-3 text-white text-sm outline-none transition-colors"
                     placeholder="+1 (555) 000-0000"
@@ -150,11 +197,14 @@ export default function BookCallPage() {
                 </div>
               </div>
 
+              {submitError ? <p className="text-[#FCA5A5] text-sm">{submitError}</p> : null}
+
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full bg-[#7A5CFF] hover:bg-[#9C7CFF] text-white font-semibold py-4 rounded-lg transition-colors text-base"
               >
-                Book Executive Strategy Call
+                {isSubmitting ? "Submitting..." : "Book Executive Strategy Call"}
               </button>
             </motion.form>
           )}

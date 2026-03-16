@@ -107,6 +107,49 @@ npm run dev
 
 Open `http://localhost:3000` in your browser.
 
+## Backend (NestJS + Prisma + PostgreSQL)
+
+This repository now includes a backend service in `backend/` for dashboard data and booking notifications.
+
+Stack:
+
+- NestJS API
+- Prisma ORM
+- PostgreSQL database named `smileyOS`
+- Nodemailer email alerts
+
+Frontend and backend connection:
+
+- Frontend uses `NEXT_PUBLIC_API_URL` from `.env.local`
+- Copy `.env.local.example` to `.env.local`
+- Default backend URL is `http://localhost:4000`
+
+Quick start:
+
+1. Backend setup
+
+```bash
+cd backend
+npm install
+copy .env.example .env
+npm run prisma:generate
+npm run prisma:migrate -- --name init
+npm run start:dev
+```
+
+2. Frontend setup
+
+```bash
+cd ..
+copy .env.local.example .env.local
+npm install
+npm run dev
+```
+
+Booking notifications:
+
+- Every successful `POST /bookings` creates a booking record and sends an email notification to `my.yassinenassibi@gmail.com` (via your configured SMTP provider).
+
 ## Available Scripts
 
 ```bash

@@ -11,17 +11,35 @@ import CaseStudies from "@/components/CaseStudies";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 
-export default function Home() {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+async function getPublicContent() {
+  try {
+    const response = await fetch(`${API_BASE}/content/public`, { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+export default async function Home() {
+  const content = await getPublicContent();
+  const site = content?.site;
+  const team = Array.isArray(content?.team) ? content.team : undefined;
+
   return (
     <main>
-      <Hero />
+      <Hero title={site?.heroTitle} subtitle={site?.heroSubtitle} />
       <Dashboard />
       <RealityCheck />
       <Positioning />
       <ClientTypes />
       <RevenueEngine />
       <div id="team">
-        <OurTeam />
+        <OurTeam teamMembers={team} />
       </div>
       <div id="partners">
         <Partnerships />

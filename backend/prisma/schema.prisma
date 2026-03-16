@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Lead {
+  id          Int      @id @default(autoincrement())
+  company     String
+  value       Int      @default(0)
+  rep         String   @default("AL")
+  source      String   @default("LinkedIn")
+  stage       String   @default("Lead Captured")
+  daysInStage Int      @default(0)
+  contact     String
+  email       String
+  phone       String?
+  industry    String?
+  website     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Booking {
+  id             Int      @id @default(autoincrement())
+  companyName    String
+  website        String?
+  industry       String
+  companyStage   String
+  monthlyRevenue String
+  bottleneck     String?
+  budgetRange    String?
+  email          String
+  phone          String?
+  createdAt      DateTime @default(now())
+}
+
+model SiteContent {
+  id              Int      @id
+  heroTitle       String
+  heroSubtitle    String
+  aboutTitle      String
+  aboutParagraph  String
+  aboutHighlights Json
+  updatedAt       DateTime @updatedAt
+}
+
+model TeamMember {
+  id            Int      @id @default(autoincrement())
+  name          String
+  role          String
+  specialty     String
+  bio           String
+  imageUrl      String?
+  color         String   @default("#7A5CFF")
+  displayOrder  Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
