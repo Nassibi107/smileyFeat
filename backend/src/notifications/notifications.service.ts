@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
+import { TestNotificationDto } from "./dto/test-notification.dto";
 
 type BookingMailData = {
   companyName: string;
@@ -25,7 +26,12 @@ export class NotificationsService {
     const user = this.configService.get<string>("SMTP_USER");
     const pass = this.configService.get<string>("SMTP_PASS");
 
-    if (!host || !user || !pass) {
+    const usingPlaceholders =
+      String(user ?? "").includes("your.smtp.user") ||
+      String(pass ?? "").includes("your-app-password") ||
+      String(host ?? "") === "";
+
+    if (!host || !user || !pass || usingPlaceholders) {
       this.logger.warn("SMTP env vars not fully configured. Email notifications are disabled.");
       return;
     }
@@ -40,6 +46,7 @@ export class NotificationsService {
 
   async sendBookingNotification(data: BookingMailData) {
     if (!this.transporter) {
+      this.logger.warn("Booking notification skipped because SMTP is not configured.");
       return;
     }
 
@@ -60,11 +67,32 @@ export class NotificationsService {
       `Phone: ${data.phone ?? "N/A"}`,
     ];
 
+    try {
+      await this.transporter.sendMail({
+        from,
+        to,
+        subject: `New Booking: ${data.companyName}`,
+        text: lines.join("\n"),
+      });
+    } catch (error) {
+      this.logger.error("Failed to send booking notification email.", error instanceof Error ? error.stack : String(error));
+      throw error;
+    }
+  }
+
+  async sendTestNotification(dto: TestNotificationDto) {
+    if (!this.transporter) {
+      throw new Error("SMTP is not configured. Update SMTP_* in backend/.env.");
+    }
+
+    const to = dto.to || this.configService.get<string>("MAIL_TO") || "my.yassinenassibi@gmail.com";
+    const from = this.configService.get<string>("SMTP_FROM") ?? this.configService.get<string>("SMTP_USER")!;
+
     await this.transporter.sendMail({
       from,
       to,
-      subject: `New Booking: ${data.companyName}`,
-      text: lines.join("\n"),
+      subject: dto.subject || "SMILEY OS Notification Test",
+      text: dto.message || "Notification system test email delivered successfully.",
     });
   }
 }

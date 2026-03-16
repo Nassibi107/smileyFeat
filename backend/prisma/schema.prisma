@@ -71,3 +71,64 @@ model TeamMember {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model DeliveryClient {
+  id         Int      @id @default(autoincrement())
+  name       String
+  owner      String
+  status     String   @default("Active")
+  health     String   @default("Healthy")
+  startDate  DateTime @default(now())
+  progress   Int      @default(0)
+  contract   Int      @default(0)
+  services   Json
+  team       Json
+  stage      Int      @default(0)
+  tasks      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Freelancer {
+  id             Int      @id @default(autoincrement())
+  name           String
+  initials       String
+  specialization String
+  rating         Int      @default(4)
+  rate           Int      @default(0)
+  availability   String   @default("green")
+  activeProjects Int      @default(0)
+  utilization    Int      @default(0)
+  profile        String
+  projects       Json
+  tasks          Json
+  payments       Json
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Partner {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String
+  description String
+  website     String?
+  logoUrl     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FinancialRecord {
+  id            Int      @id @default(autoincrement())
+  month         String
+  clientName    String
+  contract      Int      @default(0)
+  freelancerCost Int     @default(0)
+  opCost        Int      @default(0)
+  status        String   @default("Healthy")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

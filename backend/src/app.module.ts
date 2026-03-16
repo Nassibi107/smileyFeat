@@ -6,6 +6,7 @@ import { BookingsModule } from "./bookings/bookings.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { AuthModule } from "./auth/auth.module";
 import { ContentModule } from "./content/content.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ContentModule } from "./content/content.module";
     CrmModule,
     BookingsModule,
     ContentModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

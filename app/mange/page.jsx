@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Sun,
   Moon,
+  UserCircle2,
   Target,
   Briefcase,
   Users,
@@ -43,6 +44,14 @@ const API_ENDPOINTS = {
   contentAdmin: `${API_BASE}/content/admin`,
   contentSite: `${API_BASE}/content/site`,
   contentTeam: `${API_BASE}/content/team`,
+  dashboardOverview: `${API_BASE}/dashboard/overview`,
+  dashboardClients: `${API_BASE}/dashboard/clients`,
+  dashboardFreelancers: `${API_BASE}/dashboard/freelancers`,
+  dashboardPartners: `${API_BASE}/dashboard/partners`,
+  dashboardFinancials: `${API_BASE}/dashboard/financials`,
+  dashboardFinancialCsv: `${API_BASE}/dashboard/reports/financials.csv`,
+  authProfile: `${API_BASE}/auth/profile`,
+  notificationsTest: `${API_BASE}/notifications/test`,
 };
 
 function formatMoney(value) {
@@ -134,252 +143,45 @@ export default function SmileyOSPage() {
     { label: "SOP Knowledge Base", icon: BookOpen },
     { label: "Financials", icon: BarChart2 },
     { label: "Website Content", icon: BookOpen },
+    { label: "Profile", icon: UserCircle2 },
   ];
 
-  const [revenueTrend] = useState([
-    { month: "Jan", revenue: 52200 },
-    { month: "Feb", revenue: 61800 },
-    { month: "Mar", revenue: 70400 },
-    { month: "Apr", revenue: 73200 },
-    { month: "May", revenue: 79100 },
-    { month: "Jun", revenue: 84200 },
-  ]);
+  const [revenueTrend, setRevenueTrend] = useState([]);
+  const [line12Months, setLine12Months] = useState([]);
+  const [pipelineStages, setPipelineStages] = useState([]);
+  const [deliveryClients, setDeliveryClients] = useState([]);
+  const [freelancers, setFreelancers] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [financialRecords, setFinancialRecords] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedFreelancerId, setSelectedFreelancerId] = useState(null);
+  const [clientForm, setClientForm] = useState({ name: "", owner: "AL", contract: "", services: "" });
+  const [freelancerForm, setFreelancerForm] = useState({ name: "", specialization: "", rate: "", utilization: "" });
+  const [partnerForm, setPartnerForm] = useState({ name: "", category: "", description: "", website: "" });
+  const [financialForm, setFinancialForm] = useState({ month: "", clientName: "", contract: "", freelancerCost: "", opCost: "" });
+  const [isExportingReport, setIsExportingReport] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+  });
+  const [notificationForm, setNotificationForm] = useState({
+    to: "",
+    subject: "SMILEY OS Test Notification",
+    message: "This is a test notification from SMILEY OS dashboard.",
+  });
 
-  const [pipelineStages] = useState([
-    { stage: "Lead", count: 18 },
-    { stage: "Qualified", count: 14 },
-    { stage: "Booked", count: 10 },
-    { stage: "Done", count: 8 },
-    { stage: "Proposal", count: 6 },
-    { stage: "Won", count: 4 },
-    { stage: "Lost", count: 3 },
-  ]);
+  const activeClients = deliveryClients.slice(0, 4).map((client) => ({
+    name: client.name,
+    owner: client.owner,
+    status: client.status,
+    mrr: Math.round((client.contract || 0) / 12),
+    health: client.health,
+  }));
 
-  const [alerts] = useState([
-    { type: "danger", text: "Project ACME delayed 3 days" },
-    { type: "warning", text: "Freelancer capacity at 90%" },
-    { type: "info", text: "3 new leads in pipeline" },
-  ]);
-
-  const [activeClients] = useState([
-    { name: "Acme Corp", owner: "AL", status: "Active", mrr: 18500, health: "Healthy" },
-    { name: "Bolt Digital", owner: "MR", status: "At Risk", mrr: 12400, health: "At Risk" },
-    { name: "Nexus Media", owner: "KC", status: "Active", mrr: 9800, health: "Healthy" },
-    { name: "Vertex Labs", owner: "SJ", status: "Delayed", mrr: 15300, health: "Delayed" },
-  ]);
-
-  const [crmLeads, setCrmLeads] = useState([
-    {
-      id: 1,
-      company: "Acme Corp",
-      value: 42000,
-      rep: "AL",
-      source: "LinkedIn",
-      stage: "Proposal",
-      daysInStage: 4,
-      contact: "Emma Stone",
-      email: "emma@acme.com",
-      phone: "+1 332 912 0012",
-      industry: "SaaS",
-      website: "https://acme.com",
-      notes: "Fast buyer, procurement review in progress.",
-    },
-    {
-      id: 2,
-      company: "Bolt Digital",
-      value: 28000,
-      rep: "MR",
-      source: "Meta Ads",
-      stage: "Call Done",
-      daysInStage: 2,
-      contact: "Ryan Cole",
-      email: "ryan@bolt.digital",
-      phone: "+1 774 210 4455",
-      industry: "Agency",
-      website: "https://bolt.digital",
-      notes: "Needs onboarding revamp and CAC reduction.",
-    },
-    {
-      id: 3,
-      company: "Nexus Media",
-      value: 36000,
-      rep: "KC",
-      source: "Referral",
-      stage: "Qualified",
-      daysInStage: 3,
-      contact: "Noah Price",
-      email: "noah@nexusmedia.io",
-      phone: "+1 484 091 8891",
-      industry: "Media",
-      website: "https://nexusmedia.io",
-      notes: "Founder-led sales, no CRM automation yet.",
-    },
-    {
-      id: 4,
-      company: "Vertex Labs",
-      value: 50000,
-      rep: "AL",
-      source: "Google",
-      stage: "Call Booked",
-      daysInStage: 1,
-      contact: "Lia Morgan",
-      email: "lia@vertexlabs.com",
-      phone: "+1 901 555 1002",
-      industry: "HealthTech",
-      website: "https://vertexlabs.com",
-      notes: "Call scheduled for Thursday.",
-    },
-    {
-      id: 5,
-      company: "Orbit Systems",
-      value: 22000,
-      rep: "SJ",
-      source: "Referral",
-      stage: "Lead Captured",
-      daysInStage: 1,
-      contact: "Jack Rowan",
-      email: "jack@orbitsystems.co",
-      phone: "+1 201 778 1122",
-      industry: "IT Services",
-      website: "https://orbitsystems.co",
-      notes: "Inbound from partner introduction.",
-    },
-    {
-      id: 6,
-      company: "Prime Retail",
-      value: 30000,
-      rep: "MR",
-      source: "Meta Ads",
-      stage: "Qualified",
-      daysInStage: 6,
-      contact: "Sarah Dunn",
-      email: "sarah@primeretail.com",
-      phone: "+1 611 442 0977",
-      industry: "E-Commerce",
-      website: "https://primeretail.com",
-      notes: "Needs conversion optimization and retention flows.",
-    },
-    {
-      id: 7,
-      company: "Horizon Realty",
-      value: 26000,
-      rep: "KC",
-      source: "LinkedIn",
-      stage: "Won",
-      daysInStage: 0,
-      contact: "Chris Yoon",
-      email: "chris@horizonrealty.com",
-      phone: "+1 433 922 4410",
-      industry: "Real Estate",
-      website: "https://horizonrealty.com",
-      notes: "Signed annual contract.",
-    },
-    {
-      id: 8,
-      company: "Blue Peak",
-      value: 18000,
-      rep: "SJ",
-      source: "Google",
-      stage: "Lost",
-      daysInStage: 0,
-      contact: "Nina Ortiz",
-      email: "nina@bluepeak.io",
-      phone: "+1 204 333 7854",
-      industry: "Consulting",
-      website: "https://bluepeak.io",
-      notes: "Budget mismatch.",
-    },
-    {
-      id: 9,
-      company: "Nova Energy",
-      value: 41000,
-      rep: "AL",
-      source: "Referral",
-      stage: "Proposal",
-      daysInStage: 2,
-      contact: "Omar Khan",
-      email: "omar@novaenergy.com",
-      phone: "+1 919 600 2844",
-      industry: "Energy",
-      website: "https://novaenergy.com",
-      notes: "Proposal shared with finance team.",
-    },
-    {
-      id: 10,
-      company: "Pulse Fitness",
-      value: 24000,
-      rep: "MR",
-      source: "Meta Ads",
-      stage: "Call Done",
-      daysInStage: 5,
-      contact: "Anya Wells",
-      email: "anya@pulsefitness.com",
-      phone: "+1 711 228 6642",
-      industry: "Health & Wellness",
-      website: "https://pulsefitness.com",
-      notes: "Needs patient retention and referral loops.",
-    },
-    {
-      id: 11,
-      company: "Gridline AI",
-      value: 38000,
-      rep: "KC",
-      source: "LinkedIn",
-      stage: "Qualified",
-      daysInStage: 4,
-      contact: "Luis Park",
-      email: "luis@gridline.ai",
-      phone: "+1 290 011 7721",
-      industry: "AI SaaS",
-      website: "https://gridline.ai",
-      notes: "Warm intro from investor network.",
-    },
-    {
-      id: 12,
-      company: "Monarch Legal",
-      value: 21000,
-      rep: "SJ",
-      source: "Google",
-      stage: "Lead Captured",
-      daysInStage: 2,
-      contact: "Paula Reed",
-      email: "paula@monarchlegal.com",
-      phone: "+1 899 221 8092",
-      industry: "Legal",
-      website: "https://monarchlegal.com",
-      notes: "Requested pricing deck.",
-    },
-    {
-      id: 13,
-      company: "Crown Foods",
-      value: 27000,
-      rep: "AL",
-      source: "Referral",
-      stage: "Won",
-      daysInStage: 0,
-      contact: "Derek Snow",
-      email: "derek@crownfoods.com",
-      phone: "+1 833 281 0888",
-      industry: "Food",
-      website: "https://crownfoods.com",
-      notes: "Kickoff next Monday.",
-    },
-    {
-      id: 14,
-      company: "Aster Health",
-      value: 32000,
-      rep: "MR",
-      source: "LinkedIn",
-      stage: "Call Booked",
-      daysInStage: 1,
-      contact: "Mia Hale",
-      email: "mia@asterhealth.org",
-      phone: "+1 322 741 6000",
-      industry: "Healthcare",
-      website: "https://asterhealth.org",
-      notes: "Decision-maker joining call.",
-    },
-  ]);
+  const [crmLeads, setCrmLeads] = useState([]);
 
   const [crmSearch, setCrmSearch] = useState("");
   const [repFilter, setRepFilter] = useState("All");
@@ -398,208 +200,7 @@ export default function SmileyOSPage() {
     notes: "",
   });
 
-  const [deliveryClients] = useState([
-    {
-      id: "CL-101",
-      name: "Acme Corp",
-      services: ["CRM Revamp", "Funnel Ops", "Dashboards"],
-      team: ["AL", "MR", "KC"],
-      start: "2026-01-08",
-      status: "Active",
-      progress: 78,
-      contract: 86000,
-      health: "Healthy",
-      stage: 3,
-      tasks: [
-        { title: "Map lead lifecycle", status: "To Do", priority: "High", deadline: "Mar 22", assignee: "AL" },
-        { title: "Build reporting schema", status: "In Progress", priority: "Med", deadline: "Mar 20", assignee: "KC" },
-        { title: "Review automation rules", status: "Review", priority: "High", deadline: "Mar 19", assignee: "MR" },
-        { title: "Deploy call scripts", status: "Completed", priority: "Low", deadline: "Mar 14", assignee: "AL" },
-      ],
-    },
-    {
-      id: "CL-102",
-      name: "Bolt Digital",
-      services: ["Onboarding", "Retention", "Paid Media"],
-      team: ["SJ", "MR"],
-      start: "2026-02-03",
-      status: "At Risk",
-      progress: 52,
-      contract: 64000,
-      health: "At Risk",
-      stage: 2,
-      tasks: [
-        { title: "Finalize creative tests", status: "To Do", priority: "Med", deadline: "Mar 24", assignee: "MR" },
-        { title: "Create onboarding SOP", status: "In Progress", priority: "High", deadline: "Mar 21", assignee: "SJ" },
-        { title: "Client review deck", status: "Review", priority: "Med", deadline: "Mar 20", assignee: "SJ" },
-        { title: "Audit campaign data", status: "Completed", priority: "Low", deadline: "Mar 12", assignee: "MR" },
-      ],
-    },
-    {
-      id: "CL-103",
-      name: "Nexus Media",
-      services: ["Sales Ops", "Automation"],
-      team: ["KC", "AL"],
-      start: "2025-12-15",
-      status: "Active",
-      progress: 87,
-      contract: 72000,
-      health: "Healthy",
-      stage: 4,
-      tasks: [
-        { title: "Launch lead scoring", status: "In Progress", priority: "High", deadline: "Mar 18", assignee: "KC" },
-        { title: "Build weekly KPI board", status: "Review", priority: "Med", deadline: "Mar 20", assignee: "AL" },
-        { title: "QA CRM triggers", status: "To Do", priority: "Low", deadline: "Mar 26", assignee: "KC" },
-        { title: "Migrate old contacts", status: "Completed", priority: "Med", deadline: "Mar 10", assignee: "AL" },
-      ],
-    },
-    {
-      id: "CL-104",
-      name: "Vertex Labs",
-      services: ["RevOps", "Forecasting"],
-      team: ["SJ", "KC", "MR"],
-      start: "2026-01-28",
-      status: "Delayed",
-      progress: 34,
-      contract: 58000,
-      health: "Delayed",
-      stage: 1,
-      tasks: [
-        { title: "Define pipeline stages", status: "To Do", priority: "High", deadline: "Mar 25", assignee: "SJ" },
-        { title: "Forecast model v1", status: "In Progress", priority: "High", deadline: "Mar 23", assignee: "KC" },
-        { title: "Sync stakeholder feedback", status: "Review", priority: "Med", deadline: "Mar 19", assignee: "MR" },
-        { title: "Initial data import", status: "Completed", priority: "Low", deadline: "Mar 11", assignee: "SJ" },
-      ],
-    },
-  ]);
-  const [selectedClientId, setSelectedClientId] = useState("CL-101");
-
-  const [freelancers] = useState([
-    {
-      id: "FR-1",
-      name: "Lena Park",
-      initials: "LP",
-      specialization: "Funnel Designer",
-      rating: 4,
-      rate: 95,
-      availability: "green",
-      activeProjects: 3,
-      utilization: 72,
-      profile: "8 years in conversion-focused landing pages and offer architecture.",
-      projects: ["Acme Corp", "Nexus Media", "Prime Retail"],
-      tasks: [
-        { title: "Design upsell flow", deadline: "Mar 19" },
-        { title: "Refine hero variants", deadline: "Mar 22" },
-      ],
-      payments: [
-        { date: "Mar 01", amount: 2200, status: "Paid" },
-        { date: "Feb 15", amount: 1800, status: "Paid" },
-      ],
-    },
-    {
-      id: "FR-2",
-      name: "Marco Silva",
-      initials: "MS",
-      specialization: "CRM Engineer",
-      rating: 5,
-      rate: 110,
-      availability: "yellow",
-      activeProjects: 4,
-      utilization: 89,
-      profile: "HubSpot and GoHighLevel specialist focused on automation and handoff systems.",
-      projects: ["Bolt Digital", "Vertex Labs", "Aster Health", "Acme Corp"],
-      tasks: [
-        { title: "Fix webhook retries", deadline: "Mar 18" },
-        { title: "Pipeline SLA alerts", deadline: "Mar 21" },
-      ],
-      payments: [
-        { date: "Mar 05", amount: 3400, status: "Paid" },
-        { date: "Feb 20", amount: 3200, status: "Paid" },
-      ],
-    },
-    {
-      id: "FR-3",
-      name: "Nadia Kim",
-      initials: "NK",
-      specialization: "Paid Media",
-      rating: 4,
-      rate: 88,
-      availability: "green",
-      activeProjects: 2,
-      utilization: 58,
-      profile: "Performance marketer with deep focus on CAC reduction in scaling campaigns.",
-      projects: ["Pulse Fitness", "Crown Foods"],
-      tasks: [
-        { title: "Launch retargeting set", deadline: "Mar 20" },
-      ],
-      payments: [
-        { date: "Mar 02", amount: 1600, status: "Paid" },
-        { date: "Feb 11", amount: 1750, status: "Paid" },
-      ],
-    },
-    {
-      id: "FR-4",
-      name: "Julian Ross",
-      initials: "JR",
-      specialization: "Automation Ops",
-      rating: 5,
-      rate: 102,
-      availability: "red",
-      activeProjects: 5,
-      utilization: 95,
-      profile: "Builds backend operations and process automation for client delivery teams.",
-      projects: ["Nexus Media", "Horizon Realty", "Gridline AI", "Acme Corp", "Monarch Legal"],
-      tasks: [
-        { title: "Refactor onboarding flow", deadline: "Mar 17" },
-        { title: "Error logging SOP", deadline: "Mar 18" },
-      ],
-      payments: [
-        { date: "Mar 06", amount: 3800, status: "Paid" },
-        { date: "Feb 19", amount: 3550, status: "Pending" },
-      ],
-    },
-    {
-      id: "FR-5",
-      name: "Aisha Noor",
-      initials: "AN",
-      specialization: "Content Systems",
-      rating: 4,
-      rate: 76,
-      availability: "yellow",
-      activeProjects: 3,
-      utilization: 81,
-      profile: "Creates editorial pipelines and conversion-first content production systems.",
-      projects: ["Blue Peak", "Aster Health", "Prime Retail"],
-      tasks: [
-        { title: "Revise nurture emails", deadline: "Mar 23" },
-      ],
-      payments: [
-        { date: "Mar 03", amount: 1450, status: "Paid" },
-        { date: "Feb 17", amount: 1500, status: "Paid" },
-      ],
-    },
-    {
-      id: "FR-6",
-      name: "Theo Grant",
-      initials: "TG",
-      specialization: "Data Analyst",
-      rating: 5,
-      rate: 120,
-      availability: "green",
-      activeProjects: 2,
-      utilization: 62,
-      profile: "Dashboard design and forecasting analyst for executive-level reporting.",
-      projects: ["Vertex Labs", "Nova Energy"],
-      tasks: [
-        { title: "Margin variance report", deadline: "Mar 21" },
-      ],
-      payments: [
-        { date: "Mar 04", amount: 2100, status: "Paid" },
-        { date: "Feb 16", amount: 2100, status: "Paid" },
-      ],
-    },
-  ]);
-  const [selectedFreelancerId, setSelectedFreelancerId] = useState("FR-1");
+  
 
   const [sopCategory, setSopCategory] = useState("All");
   const [sopSearch, setSopSearch] = useState("");
@@ -697,41 +298,9 @@ export default function SmileyOSPage() {
   ]);
   const [selectedSopId, setSelectedSopId] = useState("SOP-1");
 
-  const [financeRevenueCards] = useState([
-    { label: "Monthly Revenue", value: 84200, delta: "+12.8%" },
-    { label: "Quarterly Revenue", value: 243600, delta: "+18.4%" },
-    { label: "Annual Run Rate", value: 1010400, delta: "+22.1%" },
-  ]);
+  
 
-  const [line12Months] = useState([
-    { month: "Jan", value: 52000 },
-    { month: "Feb", value: 56000 },
-    { month: "Mar", value: 59000 },
-    { month: "Apr", value: 62000 },
-    { month: "May", value: 65000 },
-    { month: "Jun", value: 68800 },
-    { month: "Jul", value: 71000 },
-    { month: "Aug", value: 73400 },
-    { month: "Sep", value: 76000 },
-    { month: "Oct", value: 79200 },
-    { month: "Nov", value: 82100 },
-    { month: "Dec", value: 84200 },
-  ]);
-
-  const [profitability] = useState([
-    { client: "Acme Corp", contract: 86000, freelancerCost: 24000, opCost: 9000, margin: 61, status: "Healthy" },
-    { client: "Bolt Digital", contract: 64000, freelancerCost: 23000, opCost: 12000, margin: 45, status: "At Risk" },
-    { client: "Nexus Media", contract: 72000, freelancerCost: 21000, opCost: 9500, margin: 58, status: "Healthy" },
-    { client: "Vertex Labs", contract: 58000, freelancerCost: 22000, opCost: 14000, margin: 38, status: "Delayed" },
-  ]);
-
-  const [performanceKpis] = useState([
-    { label: "Avg Client Value", value: "$7,016" },
-    { label: "LTV", value: "$54,200" },
-    { label: "CAC", value: "$2,140" },
-    { label: "Revenue / Client", value: "$19,830" },
-  ]);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth >= 768) {
@@ -741,6 +310,92 @@ export default function SmileyOSPage() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDashboardData = async () => {
+      if (!authToken) {
+        return;
+      }
+
+      try {
+        const [overviewRes, clientsRes, freelancersRes, partnersRes, financialsRes] = await Promise.all([
+          fetch(API_ENDPOINTS.dashboardOverview, { headers: { Authorization: `Bearer ${authToken}` }, cache: "no-store" }),
+          fetch(API_ENDPOINTS.dashboardClients, { headers: { Authorization: `Bearer ${authToken}` }, cache: "no-store" }),
+          fetch(API_ENDPOINTS.dashboardFreelancers, { headers: { Authorization: `Bearer ${authToken}` }, cache: "no-store" }),
+          fetch(API_ENDPOINTS.dashboardPartners, { headers: { Authorization: `Bearer ${authToken}` }, cache: "no-store" }),
+          fetch(API_ENDPOINTS.dashboardFinancials, { headers: { Authorization: `Bearer ${authToken}` }, cache: "no-store" }),
+        ]);
+
+        const responses = [overviewRes, clientsRes, freelancersRes, partnersRes, financialsRes];
+        if (responses.some((response) => response.status === 401)) {
+          handleLogout();
+          return;
+        }
+
+        if (!responses.every((response) => response.ok)) {
+          return;
+        }
+
+        const [overview, clients, freelancerRows, partnerRows, financialRows] = await Promise.all([
+          overviewRes.json(),
+          clientsRes.json(),
+          freelancersRes.json(),
+          partnersRes.json(),
+          financialsRes.json(),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        const normalizedClients = (Array.isArray(clients) ? clients : []).map((client) => ({
+          ...client,
+          id: String(client.id),
+          services: Array.isArray(client.services) ? client.services : [],
+          team: Array.isArray(client.team) ? client.team : [],
+          tasks: Array.isArray(client.tasks) ? client.tasks : [],
+          start: client.startDate ? String(client.startDate).slice(0, 10) : "",
+        }));
+
+        const normalizedFreelancers = (Array.isArray(freelancerRows) ? freelancerRows : []).map((freelancer) => ({
+          ...freelancer,
+          id: String(freelancer.id),
+          projects: Array.isArray(freelancer.projects) ? freelancer.projects : [],
+          tasks: Array.isArray(freelancer.tasks) ? freelancer.tasks : [],
+          payments: Array.isArray(freelancer.payments) ? freelancer.payments : [],
+        }));
+
+        const normalizedFinancials = Array.isArray(financialRows) ? financialRows : [];
+        const revenueSeries = normalizedFinancials.slice(-6).map((row) => ({ month: row.month, revenue: row.contract }));
+        const fullSeries = normalizedFinancials.slice(-12).map((row) => ({ month: row.month, value: row.contract }));
+
+        setDeliveryClients(normalizedClients);
+        setFreelancers(normalizedFreelancers);
+        setPartners(Array.isArray(partnerRows) ? partnerRows : []);
+        setFinancialRecords(normalizedFinancials);
+        setRevenueTrend(revenueSeries);
+        setLine12Months(fullSeries);
+        setPipelineStages(Array.isArray(overview?.pipelineStages) ? overview.pipelineStages : []);
+
+        if (normalizedClients.length > 0 && !selectedClientId) {
+          setSelectedClientId(normalizedClients[0].id);
+        }
+        if (normalizedFreelancers.length > 0 && !selectedFreelancerId) {
+          setSelectedFreelancerId(normalizedFreelancers[0].id);
+        }
+      } catch {
+        // Keep UI operable when dashboard endpoints are unavailable.
+      }
+    };
+
+    loadDashboardData();
+
+    return () => {
+      active = false;
+    };
+  }, [authToken, selectedClientId, selectedFreelancerId]);
 
   useEffect(() => {
     const storedToken = window.localStorage.getItem(AUTH_STORAGE_KEY) ?? "";
@@ -810,6 +465,50 @@ export default function SmileyOSPage() {
     };
 
     loadLeads();
+    return () => {
+      active = false;
+    };
+  }, [authToken]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProfile = async () => {
+      if (!authToken) {
+        return;
+      }
+
+      try {
+        const response = await fetch(API_ENDPOINTS.authProfile, {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+
+        if (!response.ok) {
+          return;
+        }
+
+        const profile = await response.json();
+        if (!active) {
+          return;
+        }
+
+        setAuthEmail(profile.email || "");
+        setProfileForm((prev) => ({ ...prev, email: profile.email || "" }));
+      } catch {
+        // Keep UI state intact.
+      }
+    };
+
+    loadProfile();
+
     return () => {
       active = false;
     };
@@ -910,8 +609,14 @@ export default function SmileyOSPage() {
     return searchPass && repPass && sourcePass;
   });
 
-  const selectedClient = deliveryClients.find((client) => client.id === selectedClientId) || deliveryClients[0];
-  const selectedFreelancer = freelancers.find((f) => f.id === selectedFreelancerId) || freelancers[0];
+  const selectedClient =
+    deliveryClients.find((client) => client.id === selectedClientId) ||
+    deliveryClients[0] ||
+    { id: "", name: "No client yet", services: [], team: [], start: "", status: "Pending", progress: 0, contract: 0, health: "Pending", stage: 0, tasks: [] };
+  const selectedFreelancer =
+    freelancers.find((f) => f.id === selectedFreelancerId) ||
+    freelancers[0] ||
+    { id: "", name: "No freelancer yet", initials: "--", specialization: "", rating: 0, rate: 0, availability: "green", activeProjects: 0, utilization: 0, profile: "", projects: [], tasks: [], payments: [] };
   const selectedSop = sops.find((s) => s.id === selectedSopId) || sops[0];
 
   const sopCategories = ["All", "Sales", "Onboarding", "Delivery", "Freelancer", "Ops", "Automation"];
@@ -928,19 +633,237 @@ export default function SmileyOSPage() {
   const qualified = crmLeads.filter((lead) => lead.stage === "Qualified").length;
   const avgDeal = Math.round(crmLeads.reduce((sum, l) => sum + l.value, 0) / Math.max(totalLeads, 1));
 
+  const profitability = financialRecords.map((row) => {
+    const margin = row.contract > 0 ? Math.round(((row.contract - row.freelancerCost - row.opCost) / row.contract) * 100) : 0;
+    return {
+      client: row.clientName,
+      contract: row.contract,
+      freelancerCost: row.freelancerCost,
+      opCost: row.opCost,
+      margin,
+      status: row.status || (margin >= 50 ? "Healthy" : margin >= 30 ? "At Risk" : "Delayed"),
+    };
+  });
+
   const revenueTotal = profitability.reduce((sum, row) => sum + row.contract, 0);
   const freelancerTotal = profitability.reduce((sum, row) => sum + row.freelancerCost, 0);
   const opTotal = profitability.reduce((sum, row) => sum + row.opCost, 0);
   const netProfit = revenueTotal - freelancerTotal - opTotal;
+  const monthlyRevenue = profitability.length > 0 ? profitability[profitability.length - 1].contract : 0;
+  const quarterRevenue = profitability.slice(-3).reduce((sum, row) => sum + row.contract, 0);
+  const annualRunRate = monthlyRevenue * 12;
+  const financeRevenueCards = [
+    { label: "Monthly Revenue", value: monthlyRevenue, delta: `${profitability.length} records` },
+    { label: "Quarterly Revenue", value: quarterRevenue, delta: "Last 3 records" },
+    { label: "Annual Run Rate", value: annualRunRate, delta: "Projected" },
+  ];
+  const performanceKpis = [
+    { label: "Avg Client Value", value: formatMoney(Math.round(revenueTotal / Math.max(profitability.length, 1))) },
+    { label: "LTV", value: formatMoney(Math.round((revenueTotal / Math.max(deliveryClients.length, 1)) * 4)) },
+    { label: "CAC", value: formatMoney(Math.round((crmLeads.length * 150) / Math.max(wonLeads, 1))) },
+    { label: "Revenue / Client", value: formatMoney(Math.round(revenueTotal / Math.max(deliveryClients.length, 1))) },
+  ];
   const bookingAlerts = bookingNotifications.slice(0, 3).map((booking) => ({
     type: "info",
     text: `New booking: ${booking.companyName} (${booking.email})`,
   }));
-  const dashboardAlerts = [...bookingAlerts, ...alerts].slice(0, 5);
+  const systemAlerts = [
+    ...(crmLeads.length === 0 ? [{ type: "warning", text: "No CRM leads yet. Add your first lead." }] : []),
+    ...(deliveryClients.length === 0 ? [{ type: "warning", text: "No delivery clients yet. Add a client in Client Delivery." }] : []),
+    ...(freelancers.length === 0 ? [{ type: "warning", text: "No freelancers yet. Add freelancer records." }] : []),
+  ];
+  const dashboardAlerts = [...bookingAlerts, ...systemAlerts].slice(0, 5);
   const notificationCount = dashboardAlerts.length;
 
   const handleLeadFormChange = (field, value) => {
     setLeadForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddClient = async (e) => {
+    e.preventDefault();
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.dashboardClients, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          name: clientForm.name,
+          owner: clientForm.owner,
+          contract: Number(clientForm.contract || 0),
+          services: clientForm.services.split(",").map((s) => s.trim()).filter(Boolean),
+          team: [clientForm.owner],
+        }),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!response.ok) return;
+
+      const created = await response.json();
+      const normalized = {
+        ...created,
+        id: String(created.id),
+        services: Array.isArray(created.services) ? created.services : [],
+        team: Array.isArray(created.team) ? created.team : [],
+        tasks: Array.isArray(created.tasks) ? created.tasks : [],
+        start: created.startDate ? String(created.startDate).slice(0, 10) : "",
+      };
+
+      setDeliveryClients((prev) => [normalized, ...prev]);
+      setSelectedClientId(normalized.id);
+      setClientForm({ name: "", owner: "AL", contract: "", services: "" });
+      setSyncMessage("Client added");
+    } catch {
+      setSyncMessage("Failed to add client");
+    }
+  };
+
+  const handleAddFreelancer = async (e) => {
+    e.preventDefault();
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.dashboardFreelancers, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          name: freelancerForm.name,
+          specialization: freelancerForm.specialization,
+          rate: Number(freelancerForm.rate || 0),
+          utilization: Number(freelancerForm.utilization || 0),
+        }),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!response.ok) return;
+
+      const created = await response.json();
+      const normalized = {
+        ...created,
+        id: String(created.id),
+        projects: Array.isArray(created.projects) ? created.projects : [],
+        tasks: Array.isArray(created.tasks) ? created.tasks : [],
+        payments: Array.isArray(created.payments) ? created.payments : [],
+      };
+
+      setFreelancers((prev) => [normalized, ...prev]);
+      setSelectedFreelancerId(normalized.id);
+      setFreelancerForm({ name: "", specialization: "", rate: "", utilization: "" });
+      setSyncMessage("Freelancer added");
+    } catch {
+      setSyncMessage("Failed to add freelancer");
+    }
+  };
+
+  const handleAddPartner = async (e) => {
+    e.preventDefault();
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.dashboardPartners, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(partnerForm),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!response.ok) return;
+
+      const created = await response.json();
+      setPartners((prev) => [created, ...prev]);
+      setPartnerForm({ name: "", category: "", description: "", website: "" });
+      setSyncMessage("Partner added");
+    } catch {
+      setSyncMessage("Failed to add partner");
+    }
+  };
+
+  const handleAddFinancialRecord = async (e) => {
+    e.preventDefault();
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.dashboardFinancials, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          month: financialForm.month,
+          clientName: financialForm.clientName,
+          contract: Number(financialForm.contract || 0),
+          freelancerCost: Number(financialForm.freelancerCost || 0),
+          opCost: Number(financialForm.opCost || 0),
+        }),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!response.ok) return;
+
+      const created = await response.json();
+      setFinancialRecords((prev) => [...prev, created]);
+      setRevenueTrend((prev) => [...prev, { month: created.month, revenue: created.contract }].slice(-6));
+      setLine12Months((prev) => [...prev, { month: created.month, value: created.contract }].slice(-12));
+      setFinancialForm({ month: "", clientName: "", contract: "", freelancerCost: "", opCost: "" });
+      setSyncMessage("Financial record added");
+    } catch {
+      setSyncMessage("Failed to add financial record");
+    }
+  };
+
+  const handleExportFinancialReport = async () => {
+    if (!authToken) return;
+    setIsExportingReport(true);
+
+    try {
+      const response = await fetch(API_ENDPOINTS.dashboardFinancialCsv, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("export failed");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "financial-report.csv";
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setSyncMessage("Report exported");
+    } catch {
+      setSyncMessage("Export failed");
+    } finally {
+      setIsExportingReport(false);
+    }
   };
 
   const handleLogin = async (e) => {
@@ -994,6 +917,85 @@ export default function SmileyOSPage() {
     setBackendStatus("checking");
     setSyncMessage("Disconnected");
     setTeamMembers([]);
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    if (!authToken) {
+      return;
+    }
+
+    setIsUpdatingProfile(true);
+    try {
+      const body = {
+        email: profileForm.email,
+        currentPassword: profileForm.currentPassword || undefined,
+        newPassword: profileForm.newPassword || undefined,
+      };
+
+      const response = await fetch(API_ENDPOINTS.authProfile, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Profile update failed");
+      }
+
+      const updated = await response.json();
+      const nextEmail = updated.email || profileForm.email;
+      setAuthEmail(nextEmail);
+      window.localStorage.setItem(`${AUTH_STORAGE_KEY}.email`, nextEmail);
+      setProfileForm((prev) => ({ ...prev, currentPassword: "", newPassword: "", email: nextEmail }));
+      setSyncMessage("Profile updated");
+    } catch {
+      setSyncMessage("Failed to update profile");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleSendTestNotification = async (e) => {
+    e.preventDefault();
+    if (!authToken) {
+      return;
+    }
+
+    setIsSendingTestNotification(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.notificationsTest, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(notificationForm),
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Notification test failed");
+      }
+
+      setSyncMessage("Test notification sent");
+    } catch {
+      setSyncMessage("Notification system not configured. Update SMTP settings.");
+    } finally {
+      setIsSendingTestNotification(false);
+    }
   };
 
   const toggleDarkMode = () => {
@@ -1075,36 +1077,36 @@ export default function SmileyOSPage() {
         <div className="kpi-grid six">
           <div className="card">
             <div className="card-label">Monthly Revenue</div>
-            <div className="metric">$84,200</div>
-            <div className="muted">Target: $100,000</div>
+            <div className="metric">{formatMoney(monthlyRevenue)}</div>
+            <div className="muted">Target: {formatMoney(Math.max(monthlyRevenue, 100000))}</div>
             <div className="progress-track">
-              <div className="progress-fill" style={{ width: "84.2%" }} />
+              <div className="progress-fill" style={{ width: `${Math.min(100, Math.round((monthlyRevenue / Math.max(monthlyRevenue, 100000)) * 100))}%` }} />
             </div>
           </div>
           <div className="card">
             <div className="card-label">Active Clients</div>
-            <div className="metric">12</div>
-            <div className="muted">Across 7 industries</div>
+            <div className="metric">{deliveryClients.length}</div>
+            <div className="muted">From live database records</div>
           </div>
           <div className="card">
             <div className="card-label">Pipeline Value</div>
-            <div className="metric">$320,000</div>
+            <div className="metric">{formatMoney(crmLeads.reduce((sum, lead) => sum + lead.value, 0))}</div>
             <div className="muted">Weighted opportunity value</div>
           </div>
           <div className="card">
             <div className="card-label">Closed This Month</div>
-            <div className="metric">4 deals</div>
-            <div className="muted">2 annual + 2 quarterly retainers</div>
+            <div className="metric">{wonLeads} deals</div>
+            <div className="muted">Closed won from CRM pipeline</div>
           </div>
           <div className="card">
             <div className="card-label">Avg Client Value</div>
-            <div className="metric">$7,016</div>
+            <div className="metric">{formatMoney(Math.round(revenueTotal / Math.max(deliveryClients.length, 1)))}</div>
             <div className="muted">Monthly recurring average</div>
           </div>
           <div className="card">
             <div className="card-label">Profit Margin</div>
-            <div className="metric">62%</div>
-            <div className="muted">+4.2% vs last month</div>
+            <div className="metric">{revenueTotal > 0 ? Math.round((netProfit / revenueTotal) * 100) : 0}%</div>
+            <div className="muted">Based on financial records</div>
           </div>
         </div>
 
@@ -1181,6 +1183,7 @@ export default function SmileyOSPage() {
                   </div>
                 </div>
               ))}
+              {activeClients.length === 0 ? <div className="muted">No clients yet. Add clients in Client Delivery.</div> : null}
             </div>
           </div>
         </div>
@@ -1281,6 +1284,31 @@ export default function SmileyOSPage() {
 
     return (
       <div className="module-stack">
+        <div className="card">
+          <div className="card-title">Add Client Delivery Record</div>
+          <form className="modal-grid margin-top-12" onSubmit={handleAddClient}>
+            <div className="form-control">
+              <label>Client Name</label>
+              <input className="form-input" value={clientForm.name} onChange={(e) => setClientForm((prev) => ({ ...prev, name: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Owner</label>
+              <input className="form-input" value={clientForm.owner} onChange={(e) => setClientForm((prev) => ({ ...prev, owner: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Contract Value</label>
+              <input className="form-input" type="number" min="0" value={clientForm.contract} onChange={(e) => setClientForm((prev) => ({ ...prev, contract: e.target.value }))} />
+            </div>
+            <div className="form-control full-row">
+              <label>Services (comma separated)</label>
+              <input className="form-input" value={clientForm.services} onChange={(e) => setClientForm((prev) => ({ ...prev, services: e.target.value }))} placeholder="CRM Revamp, Funnel Ops" />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit">Add Client</button>
+            </div>
+          </form>
+        </div>
+
         <div className="card overflow-x">
           <table className="table">
             <thead>
@@ -1419,6 +1447,31 @@ export default function SmileyOSPage() {
   const renderFreelancers = () => {
     return (
       <div className="module-stack">
+
+        <div className="card">
+          <div className="card-title">Add Freelancer</div>
+          <form className="modal-grid margin-top-12" onSubmit={handleAddFreelancer}>
+            <div className="form-control">
+              <label>Name</label>
+              <input className="form-input" value={freelancerForm.name} onChange={(e) => setFreelancerForm((prev) => ({ ...prev, name: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Specialization</label>
+              <input className="form-input" value={freelancerForm.specialization} onChange={(e) => setFreelancerForm((prev) => ({ ...prev, specialization: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Hourly Rate</label>
+              <input className="form-input" type="number" min="0" value={freelancerForm.rate} onChange={(e) => setFreelancerForm((prev) => ({ ...prev, rate: e.target.value }))} />
+            </div>
+            <div className="form-control">
+              <label>Utilization %</label>
+              <input className="form-input" type="number" min="0" max="100" value={freelancerForm.utilization} onChange={(e) => setFreelancerForm((prev) => ({ ...prev, utilization: e.target.value }))} />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit">Add Freelancer</button>
+            </div>
+          </form>
+        </div>
 
         {/* ── Team Design Intro ── */}
         <div className="card team-intro-card" style={{ borderLeft: "3px solid #7c3aed" }}>
@@ -1633,6 +1686,40 @@ export default function SmileyOSPage() {
   const renderFinancials = () => {
     return (
       <div className="module-stack">
+        <div className="card">
+          <div className="row-between wrap gap-8">
+            <div className="card-title">Add Financial Record</div>
+            <button className="btn-primary" onClick={handleExportFinancialReport} disabled={isExportingReport}>
+              {isExportingReport ? "Exporting..." : "Export Excel Report"}
+            </button>
+          </div>
+          <form className="modal-grid margin-top-12" onSubmit={handleAddFinancialRecord}>
+            <div className="form-control">
+              <label>Month</label>
+              <input className="form-input" value={financialForm.month} onChange={(e) => setFinancialForm((prev) => ({ ...prev, month: e.target.value }))} placeholder="Mar 2026" required />
+            </div>
+            <div className="form-control">
+              <label>Client Name</label>
+              <input className="form-input" value={financialForm.clientName} onChange={(e) => setFinancialForm((prev) => ({ ...prev, clientName: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Contract</label>
+              <input className="form-input" type="number" min="0" value={financialForm.contract} onChange={(e) => setFinancialForm((prev) => ({ ...prev, contract: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Freelancer Cost</label>
+              <input className="form-input" type="number" min="0" value={financialForm.freelancerCost} onChange={(e) => setFinancialForm((prev) => ({ ...prev, freelancerCost: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Ops Cost</label>
+              <input className="form-input" type="number" min="0" value={financialForm.opCost} onChange={(e) => setFinancialForm((prev) => ({ ...prev, opCost: e.target.value }))} required />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit">Add Financial Record</button>
+            </div>
+          </form>
+        </div>
+
         <div className="kpi-grid three">
           {financeRevenueCards.map((card) => (
             <div className="card" key={card.label}>
@@ -1687,6 +1774,11 @@ export default function SmileyOSPage() {
                   </td>
                 </tr>
               ))}
+              {profitability.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="muted">No financial records yet.</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -1947,6 +2039,145 @@ export default function SmileyOSPage() {
             </table>
           </div>
         </div>
+
+        <div className="card">
+          <div className="card-title">Partners</div>
+          <p className="muted">Add your partner organizations from dashboard data.</p>
+          <form className="modal-grid margin-top-12" onSubmit={handleAddPartner}>
+            <div className="form-control">
+              <label>Name</label>
+              <input className="form-input" value={partnerForm.name} onChange={(e) => setPartnerForm((prev) => ({ ...prev, name: e.target.value }))} required />
+            </div>
+            <div className="form-control">
+              <label>Category</label>
+              <input className="form-input" value={partnerForm.category} onChange={(e) => setPartnerForm((prev) => ({ ...prev, category: e.target.value }))} required />
+            </div>
+            <div className="form-control full-row">
+              <label>Description</label>
+              <textarea rows={3} value={partnerForm.description} onChange={(e) => setPartnerForm((prev) => ({ ...prev, description: e.target.value }))} required />
+            </div>
+            <div className="form-control full-row">
+              <label>Website</label>
+              <input className="form-input" value={partnerForm.website} onChange={(e) => setPartnerForm((prev) => ({ ...prev, website: e.target.value }))} />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit">Add Partner</button>
+            </div>
+          </form>
+
+          <div className="table-wrap margin-top-12">
+            <table className="table compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Website</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partners.map((partner) => (
+                  <tr key={partner.id}>
+                    <td>{partner.name}</td>
+                    <td>{partner.category}</td>
+                    <td>{partner.website || "-"}</td>
+                  </tr>
+                ))}
+                {partners.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="muted">No partners yet.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    );
+  };
+
+  const renderProfile = () => {
+    return (
+      <div className="module-stack">
+        <div className="card">
+          <div className="card-title">My Account</div>
+          <p className="muted">Update your login email and password.</p>
+          <form className="modal-grid margin-top-12" onSubmit={handleUpdateProfile}>
+            <div className="form-control full-row">
+              <label>Email</label>
+              <input
+                className="form-input"
+                type="email"
+                value={profileForm.email}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-control">
+              <label>Current Password</label>
+              <input
+                className="form-input"
+                type="password"
+                value={profileForm.currentPassword}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="Required only when changing password"
+              />
+            </div>
+            <div className="form-control">
+              <label>New Password</label>
+              <input
+                className="form-input"
+                type="password"
+                value={profileForm.newPassword}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit" disabled={isUpdatingProfile}>
+                {isUpdatingProfile ? "Updating..." : "Update Profile"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Notification System Test</div>
+          <p className="muted">Send a test email to verify SMTP is working in production.</p>
+          <form className="modal-grid margin-top-12" onSubmit={handleSendTestNotification}>
+            <div className="form-control full-row">
+              <label>Recipient Email</label>
+              <input
+                className="form-input"
+                type="email"
+                value={notificationForm.to}
+                onChange={(e) => setNotificationForm((prev) => ({ ...prev, to: e.target.value }))}
+                placeholder="Leave empty to use MAIL_TO"
+              />
+            </div>
+            <div className="form-control full-row">
+              <label>Subject</label>
+              <input
+                className="form-input"
+                value={notificationForm.subject}
+                onChange={(e) => setNotificationForm((prev) => ({ ...prev, subject: e.target.value }))}
+              />
+            </div>
+            <div className="form-control full-row">
+              <label>Message</label>
+              <textarea
+                rows={3}
+                value={notificationForm.message}
+                onChange={(e) => setNotificationForm((prev) => ({ ...prev, message: e.target.value }))}
+              />
+            </div>
+            <div className="row gap-8 full-row">
+              <button className="btn-primary" type="submit" disabled={isSendingTestNotification}>
+                {isSendingTestNotification ? "Sending..." : "Send Test Notification"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     );
   };
@@ -1958,6 +2189,7 @@ export default function SmileyOSPage() {
     if (activeModule === "Freelancers") return renderFreelancers();
     if (activeModule === "SOP Knowledge Base") return renderSOP();
     if (activeModule === "Website Content") return renderWebsiteContent();
+    if (activeModule === "Profile") return renderProfile();
     return renderFinancials();
   };
 
@@ -3125,7 +3357,9 @@ export default function SmileyOSPage() {
                 <Bell size={16} />
                 <span className="badge-count">{notificationCount}</span>
               </div>
-              <div className="avatar">AD</div>
+              <button className="avatar" onClick={() => setActiveModule("Profile")} title="Open profile">
+                AD
+              </button>
               <div className="user-meta">
                 <div className="metric-sm">Admin</div>
                 <div className="user-role">CEO</div>
